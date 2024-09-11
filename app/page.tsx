@@ -1,101 +1,132 @@
-import Image from "next/image";
+"use client"; // Required for client-side components in the App Router
 
-export default function Home() {
+import { useState, useEffect } from "react";
+import axios from "axios";
+
+const Home = () => {
+  const [items, setItems] = useState([]); 
+  const [currentItem, setCurrentItem] = useState({ id: null, text: "" });
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Fetch data from the API when the component mounts
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const response = await axios.get("https://nodejs-project-two.vercel.app/items");
+        setItems(response.data);
+      } catch (error) {
+        console.error("Error fetching items:", error);
+      }
+    };
+    fetchItems();
+  }, []);
+
+  // Handle input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCurrentItem({ ...currentItem, text: e.target.value });
+  };
+
+  // Add item (POST request)
+  const addItem = async () => {
+    if (currentItem.text.trim() === "") return;
+    try {
+      const response = await axios.post("https://nodejs-project-two.vercel.app/items", {
+        name: currentItem.text,
+      });
+      setItems([...items, response.data]); // Update with new item
+      setCurrentItem({ id: null, text: "" });
+    } catch (error) {
+      console.error("Error adding item:", error);
+    }
+  };
+
+  // Edit item
+  const editItem = (item: { id: number; text: string }) => {
+    setIsEditing(true);
+    setCurrentItem(item);
+  };
+
+  // Update item (PUT request)
+  const updateItem = async () => {
+    try {
+      await axios.put(`https://nodejs-project-two.vercel.app/items/${currentItem.id}`, {
+        name: currentItem.text,
+      });
+      setItems(
+        items.map((item) =>
+          item._id === currentItem.id ? { ...item, name: currentItem.text } : item
+        )
+      );
+      setCurrentItem({ id: null, text: "" });
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating item:", error);
+    }
+  };
+
+  // Delete item (DELETE request)
+  const deleteItem = async (id: number) => {
+    try {
+      await axios.delete(`https://nodejs-project-two.vercel.app/items/${id}`);
+      setItems(items.filter((item) => item._id !== id));
+    } catch (error) {
+      console.error("Error deleting item:", error);
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="max-w-xl mx-auto mt-10">
+      <h1 className="text-2xl font-bold text-center mb-6">CRUD List</h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Enter item"
+          className="border rounded p-2 w-full"
+          value={currentItem.text}
+          onChange={handleInputChange}
+        />
+        <button
+          className={`mt-2 px-4 py-2 bg-blue-500 text-white rounded ${
+            currentItem.text.trim() === "" ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          onClick={isEditing ? updateItem : addItem}
+          disabled={currentItem.text.trim() === ""}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          {isEditing ? "Update" : "Add"}
+        </button>
+      </div>
+
+      <ul className="space-y-2">
+        {items.length > 0 ? (
+          items.map((item) => (
+            <li
+              key={item._id}
+              className="flex justify-between items-center bg-gray-100 p-2 rounded"
+            >
+              <span>{item.name}</span>
+              <div className="space-x-2">
+                <button
+                  className="px-2 py-1 bg-green-500 text-white rounded"
+                  onClick={() => editItem({ id: item._id, text: item.name })}
+                >
+                  Edit
+                </button>
+                <button
+                  className="px-2 py-1 bg-red-500 text-white rounded"
+                  onClick={() => deleteItem(item._id)}
+                >
+                  Delete
+                </button>
+              </div>
+            </li>
+          ))
+        ) : (
+          <li className="text-center text-gray-500">No items added yet.</li>
+        )}
+      </ul>
     </div>
   );
-}
+};
+
+export default Home;
