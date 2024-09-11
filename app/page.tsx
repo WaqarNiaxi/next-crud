@@ -1,19 +1,27 @@
-"use client"; // Required for client-side components in the App Router
+"use client";
 
 import { useState, useEffect } from "react";
 import axios from "axios";
 
+// Define the type for items
+interface Item {
+  _id: number; // Assuming _id is a number, adjust if necessary
+  name: string;
+}
+
 const Home = () => {
-  const [items, setItems] = useState([]); 
-  const [currentItem, setCurrentItem] = useState({ id: null, text: "" });
+  const [items, setItems] = useState<Item[]>([]); // Use the Item[] type
+  const [currentItem, setCurrentItem] = useState<{ id: number | null; text: string }>({
+    id: null,
+    text: "",
+  });
   const [isEditing, setIsEditing] = useState(false);
 
-  // Fetch data from the API when the component mounts
   useEffect(() => {
     const fetchItems = async () => {
       try {
         const response = await axios.get("https://nodejs-project-two.vercel.app/items");
-        setItems(response.data);
+        setItems(response.data); // Assuming the API returns data of type Item[]
       } catch (error) {
         console.error("Error fetching items:", error);
       }
@@ -21,32 +29,28 @@ const Home = () => {
     fetchItems();
   }, []);
 
-  // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCurrentItem({ ...currentItem, text: e.target.value });
   };
 
-  // Add item (POST request)
   const addItem = async () => {
     if (currentItem.text.trim() === "") return;
     try {
       const response = await axios.post("https://nodejs-project-two.vercel.app/items", {
         name: currentItem.text,
       });
-      setItems([...items, response.data]); // Update with new item
+      setItems([...items, response.data as Item]); // Cast response data to Item
       setCurrentItem({ id: null, text: "" });
     } catch (error) {
       console.error("Error adding item:", error);
     }
   };
 
-  // Edit item
-  const editItem = (item: { id: number; text: string }) => {
+  const editItem = (item: Item) => {
     setIsEditing(true);
-    setCurrentItem(item);
+    setCurrentItem({ id: item._id, text: item.name });
   };
 
-  // Update item (PUT request)
   const updateItem = async () => {
     try {
       await axios.put(`https://nodejs-project-two.vercel.app/items/${currentItem.id}`, {
@@ -64,7 +68,6 @@ const Home = () => {
     }
   };
 
-  // Delete item (DELETE request)
   const deleteItem = async (id: number) => {
     try {
       await axios.delete(`https://nodejs-project-two.vercel.app/items/${id}`);
@@ -108,7 +111,7 @@ const Home = () => {
               <div className="space-x-2">
                 <button
                   className="px-2 py-1 bg-green-500 text-white rounded"
-                  onClick={() => editItem({ id: item._id, text: item.name })}
+                  onClick={() => editItem(item)}
                 >
                   Edit
                 </button>
